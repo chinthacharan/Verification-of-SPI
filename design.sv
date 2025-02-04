@@ -285,5 +285,29 @@ interface spi_i;
     logic [7:0] addr, din;
     logic [7:0] dout;
     logic done, err;
+
+    property reset_behavior;
+      @(posedge clk) disable iff (!rst) rst |=> (done == 0 && err == 0);
+  endproperty
+  assert property (reset_behavior)
+      else $error("Reset behavior failed!");
+
+  property write_valid;
+      @(posedge clk) (wr && !rst) |-> ##1 (done || err);
+  endproperty
+  assert property (write_valid)
+      else $error("Write operation failed to complete!");
+
+  property read_valid;
+      @(posedge clk) (!wr && !rst) |-> ##1 (done || err);
+  endproperty
+  assert property (read_valid)
+      else $error("Read operation failed to complete!");
+
+  property err_check;
+      @(posedge clk) (err) |-> (done == 0);
+  endproperty
+  assert property (err_check)
+      else $error("Error flag set incorrectly!");
   
 endinterface

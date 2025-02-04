@@ -264,13 +264,31 @@ endclass
 class monitor extends uvm_monitor;
     `uvm_component_utils(monitor)
 
-    function new(string path = "monitor", uvm_component parent = null);
-        super.new(path, parent);
-    endfunction
+    
 
     transaction tr;
     virtual spi_i vif;
     uvm_analysis_port#(transaction) send;
+
+    covergroup cg_spi;
+        coverpoint tr.op {
+            bins read_op  = {readd};
+            bins write_op = {writed};
+            bins reset_op = {rstdut};
+            bins err_read = {readerr};
+            bins err_write = {writeerr};
+        }
+
+        coverpoint tr.addr {
+            bins valid_addr = {[0:10]};
+            bins invalid_addr = {[31:255]};
+        }
+    endgroup
+
+    function new(string path = "monitor", uvm_component parent = null);
+        super.new(path, parent);
+        cg_spi = new();
+    endfunction
 
     virtual function void build_phase(uvm_phase phase);
         super.build_phase(phase);
@@ -293,6 +311,7 @@ class monitor extends uvm_monitor;
                 tr.addr = vif.addr;
                 tr.din = vif.din;
                 tr.err = vif.err;
+                cg_spi.sample();
                 `uvm_info("MON", $sformatf("Write Mode: din: %0d, addr: %0d, err: %0d", tr.din, tr.addr, tr.err), UVM_NONE);
                 send.write(tr);
             end
@@ -301,6 +320,7 @@ class monitor extends uvm_monitor;
                 tr.addr = vif.addr;
                 tr.din = vif.din;
                 tr.err = vif.err;
+                cg_spi.sample();
                 `uvm_info("MON", $sformatf("Read Mode: din: %0d, addr: %0d, err: %0d", tr.din, tr.addr, tr.err), UVM_NONE);
                 send.write(tr);
             end
